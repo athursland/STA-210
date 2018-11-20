@@ -98,3 +98,5 @@ airbnb <- airbnb %>%
 #Omit all observations with NAs 
 airbnb <- airbnb[complete.cases(airbnb),]
 ```
+
+Question of interest: How can we produce a model that accurately predicts the listed nightly price for an Airbnb in Asheville, NC?
