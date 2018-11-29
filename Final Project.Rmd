@@ -153,5 +153,9 @@ airbnb <- airbnb %>% mutate(log.bathrooms = log(bathrooms),
                             log.cleaningfee = log(cleaning_fee))
 ```
 
+```{r}
+pairs(price ~ log.bathrooms + log.cleaningfee, data = airbnb)
+```
+
 
 
