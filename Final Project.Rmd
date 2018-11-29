@@ -103,6 +103,18 @@ airbnb <- airbnb[complete.cases(airbnb),]
 
 # Separate training and testing
 
+```{r separate}
+#80% of the sample size
+smp_size <- floor(0.80 * nrow(airbnb))
+
+#set the seed to make your partition reproducible
+set.seed(12345)
+train_ind <- sample(seq_len(nrow(airbnb)), size = smp_size)
+
+train.airbnb <- airbnb[train_ind, ]
+test.airbnb <- airbnb[-train_ind, ]
+```
+
 # Description of data
 
 Question of interest: How can we produce a model that accurately predicts the listed nightly price for an Airbnb in Asheville, NC?
