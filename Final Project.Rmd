@@ -96,6 +96,11 @@ airbnb <- airbnb %>%
     )
 ```
 
+```{r zipcode}
+#Make zipcode a factor
+airbnb$zipcode <- as.factor(airbnb$zipcode)
+```
+
 ```{r omit-na}
 #Omit all observations with NAs 
 airbnb <- airbnb[complete.cases(airbnb),]
