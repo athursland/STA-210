@@ -101,6 +101,10 @@ airbnb <- airbnb %>%
 airbnb <- airbnb[complete.cases(airbnb),]
 ```
 
+# Separate training and testing
+
+# Description of data
+
 Question of interest: How can we produce a model that accurately predicts the listed nightly price for an Airbnb in Asheville, NC?
 
 Variables: 
@@ -133,6 +137,8 @@ Variables:
 * reviews_per_month
 * cancellation_policy
 
+# Background
+
 # Exploratory Data Analysis
 
 ```{r pairs-plots}
@@ -148,10 +154,9 @@ pairs(price ~ review_scores_location + review_scores_value + reviews_per_month, 
 pairs(price ~ cancellation_policy, data = airbnb)
 ```
 
-```{r}
+```{r mutate}
 airbnb <- airbnb %>% mutate(log.bathrooms = log(bathrooms),
                             log.cleaningfee = log(cleaning_fee))
 ```
-
 
 
