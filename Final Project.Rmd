@@ -131,6 +131,8 @@ Variables:
 * reviews_per_month
 * cancellation_policy
 
+# Exploratory Data Analysis
+
 ```{r pairs-plots}
 pairs(price ~ host_response_rate + host_is_superhost + host_listings_count, data=airbnb)
 pairs(price ~ zipcode + room_type + bathrooms, data=airbnb)
@@ -142,4 +144,11 @@ pairs(price ~ review_scores_cleanliness + review_scores_checkin + review_scores_
 pairs(price ~ review_scores_location + review_scores_value + reviews_per_month, data = airbnb)
 pairs(price ~ cancellation_policy, data = airbnb)
 ```
+
+```{r}
+airbnb <- airbnb %>% mutate(log.bathrooms = log(bathrooms),
+                            log.cleaningfee = log(cleaning_fee))
+```
+
+
 
