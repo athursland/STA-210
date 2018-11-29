@@ -1,6 +1,6 @@
 ---
 title: "Final Project"
-author: "Ali Thursland"
+author: "Ali Thursland and Mary Helen Wood"
 date: "11/20/2018"
 output: html_document
 ---
