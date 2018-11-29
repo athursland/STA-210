@@ -101,6 +101,22 @@ airbnb <- airbnb %>%
 airbnb <- airbnb[complete.cases(airbnb),]
 ```
 
+# Separate training and testing
+
+```{r separate}
+#80% of the sample size
+smp_size <- floor(0.80 * nrow(airbnb))
+
+#set the seed to make your partition reproducible
+set.seed(12345)
+train_ind <- sample(seq_len(nrow(airbnb)), size = smp_size)
+
+train.airbnb <- airbnb[train_ind, ]
+test.airbnb <- airbnb[-train_ind, ]
+```
+
+# Description of data
+
 Question of interest: How can we produce a model that accurately predicts the listed nightly price for an Airbnb in Asheville, NC?
 
 Variables: 
@@ -133,6 +149,8 @@ Variables:
 * reviews_per_month
 * cancellation_policy
 
+# Background
+
 # Exploratory Data Analysis
 
 ```{r pairs-plots}
@@ -148,7 +166,7 @@ pairs(price ~ review_scores_location + review_scores_value + reviews_per_month, 
 pairs(price ~ cancellation_policy, data = airbnb)
 ```
 
-```{r}
+```{r mutate}
 airbnb <- airbnb %>% mutate(log.bathrooms = log(bathrooms),
                             log.cleaningfee = log(cleaning_fee),
                             log.securitydeposit = log(security_deposit),
@@ -160,6 +178,5 @@ airbnb <- airbnb %>% mutate(log.bathrooms = log(bathrooms),
 pairs(price ~ log.bathrooms + log.cleaningfee, data = airbnb)
 pairs(price ~ log.securitydeposit + log.guestsincluded + log.nreviews, data = airbnb)
 ```
-
 
 
