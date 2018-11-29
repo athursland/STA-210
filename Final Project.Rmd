@@ -155,19 +155,19 @@ Variables:
 
 ```{r pairs-plots}
 #pairs plots for all of the explanatory variables
-pairs(price ~ host_response_rate + host_is_superhost + host_listings_count, data=airbnb)
-pairs(price ~ zipcode + room_type + bathrooms, data=airbnb)
-pairs(price ~ accommodates + beds + bed_type, data=airbnb)
-pairs(price ~ security_deposit + cleaning_fee + guests_included, data = airbnb)
-pairs(price ~ extra_people + minimum_nights + availability_30, data = airbnb)
-pairs(price ~ number_of_reviews + review_scores_rating + review_scores_accuracy, data = airbnb)
-pairs(price ~ review_scores_cleanliness + review_scores_checkin + review_scores_communication, data = airbnb)
-pairs(price ~ review_scores_location + review_scores_value + reviews_per_month, data = airbnb)
-pairs(price ~ cancellation_policy, data = airbnb)
+pairs(price ~ host_response_rate + host_is_superhost + host_listings_count, data=train.airbnb)
+pairs(price ~ zipcode + room_type + bathrooms, data=train.airbnb)
+pairs(price ~ accommodates + beds + bed_type, data=train.airbnb)
+pairs(price ~ security_deposit + cleaning_fee + guests_included, data = train.airbnb)
+pairs(price ~ extra_people + minimum_nights + availability_30, data = train.airbnb)
+pairs(price ~ number_of_reviews + review_scores_rating + review_scores_accuracy, data = train.airbnb)
+pairs(price ~ review_scores_cleanliness + review_scores_checkin + review_scores_communication, data = train.airbnb)
+pairs(price ~ review_scores_location + review_scores_value + reviews_per_month, data = train.airbnb)
+pairs(price ~ cancellation_policy, data = train.airbnb)
 ```
 
 ```{r mutate}
-airbnb <- airbnb %>% mutate(log.bathrooms = log(bathrooms),
+train.airbnb <- train.airbnb %>% mutate(log.bathrooms = log(bathrooms),
                             log.cleaningfee = log(cleaning_fee),
                             log.securitydeposit = log(security_deposit),
                             log.guestsincluded = log(guests_included),
@@ -175,8 +175,8 @@ airbnb <- airbnb %>% mutate(log.bathrooms = log(bathrooms),
 ```
 
 ```{r}
-pairs(price ~ log.bathrooms + log.cleaningfee, data = airbnb)
-pairs(price ~ log.securitydeposit + log.guestsincluded + log.nreviews, data = airbnb)
+pairs(price ~ log.bathrooms + log.cleaningfee, data = train.airbnb)
+pairs(price ~ log.securitydeposit + log.guestsincluded + log.nreviews, data = train.airbnb)
 ```
 
 
