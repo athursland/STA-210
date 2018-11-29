@@ -150,11 +150,15 @@ pairs(price ~ cancellation_policy, data = airbnb)
 
 ```{r}
 airbnb <- airbnb %>% mutate(log.bathrooms = log(bathrooms),
-                            log.cleaningfee = log(cleaning_fee))
+                            log.cleaningfee = log(cleaning_fee),
+                            log.securitydeposit = log(security_deposit),
+                            log.guestsincluded = log(guests_included),
+                            log.nreviews = log(number_of_reviews))
 ```
 
 ```{r}
 pairs(price ~ log.bathrooms + log.cleaningfee, data = airbnb)
+pairs(price ~ log.securitydeposit + log.guestsincluded + log.nreviews, data = airbnb)
 ```
 
 
