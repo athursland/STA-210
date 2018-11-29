@@ -21,6 +21,8 @@ library("dslabs")
 airbnb <- read.csv("https://raw.githubusercontent.com/athursland/STA-210/master/airbnb.csv?fbclid=IwAR0ffZSvoMPWxJjX-a4gWp2UlripEqAK0NJtu2ioHgmG0uWjCm20Hse8pNw")
 ```
 
+# Data Preparation
+
 ```{r manipulating-data}
 #Make new variable has_reviews
 airbnb <- airbnb %>% 
@@ -134,6 +136,7 @@ Variables:
 # Exploratory Data Analysis
 
 ```{r pairs-plots}
+#pairs plots for all of the explanatory variables
 pairs(price ~ host_response_rate + host_is_superhost + host_listings_count, data=airbnb)
 pairs(price ~ zipcode + room_type + bathrooms, data=airbnb)
 pairs(price ~ accommodates + beds + bed_type, data=airbnb)
