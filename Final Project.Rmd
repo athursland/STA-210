@@ -192,6 +192,13 @@ pairs(price ~ log.bathrooms + log.cleaningfee, data = train.airbnb)
 pairs(price ~ log.securitydeposit + log.guestsincluded + log.nreviews, data = train.airbnb)
 ```
 
+<<<<<<< HEAD
 ```{r }
+=======
+# Rough Model Selection
+
+```
+
+>>>>>>> d4054d9cb8bb0335573ea665e0e10390a8613a00
 
 
