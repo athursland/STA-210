@@ -131,8 +131,8 @@ Question of interest: How can we produce a model that accurately predicts the li
 Variables: 
 * host_response_rate
 * host_is_superhost
-* total listings
-* zip code
+* total_listings
+* zipcode
 * property_type
 * room_type
 * accomodates
@@ -140,12 +140,12 @@ Variables:
 * beds
 * bed_type
 * price
-* security deposit
-* cleaning fee
-* guests included 
-* extra people cost
-* minimum nights
-* maximum nights
+* security_deposit
+* cleaning_fee
+* guests_included 
+* extra_people_cost
+* minimum_nights
+* maximum_nights
 * availability_30
 * number_of_reviews
 * review_scores_rating
@@ -191,5 +191,7 @@ train.airbnb <- train.airbnb %>% mutate(log.bathrooms = log(bathrooms),
 pairs(price ~ log.bathrooms + log.cleaningfee, data = train.airbnb)
 pairs(price ~ log.securitydeposit + log.guestsincluded + log.nreviews, data = train.airbnb)
 ```
+
+```{r }
 
 
