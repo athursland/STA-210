@@ -14,6 +14,8 @@ library("knitr")
 library("cowplot")
 library("readr")
 library("dslabs")
+library("varhandle")
+library("olsrr")
 ```
 
 ```{r data}
@@ -94,6 +96,24 @@ airbnb <- airbnb %>%
     is.na(reviews_per_month) ~ 0, 
     !is.na(reviews_per_month) ~ reviews_per_month)
     )
+
+#Make NAs = 0 for host_response_rate
+#airbnb <- airbnb %>% 
+  #mutate(host_response_rate = case_when( 
+    #is.na(host_response_rate) ~ 0.0, 
+    #!is.na(host_response_rate) ~ host_response_rate)
+    #)
+```
+
+```{r price-factor, message=FALSE}
+#Make price as numeric
+airbnb$price <- as.numeric(as.character(airbnb$price))
+airbnb$price
+
+#Make host_response_rate as numeric
+#airbnb$host_response_rate <- as.character(sub("%", "", airbnb$host_response_rate))
+#airbnb$host_response_rate <- as.numeric(airbnb$host_response_rate)
+#airbnb$host_response_rate
 ```
 
 ```{r zipcode}
@@ -120,6 +140,14 @@ train.airbnb <- airbnb[train_ind, ]
 test.airbnb <- airbnb[-train_ind, ]
 ```
 
+```{r mutate-variables}
+train.airbnb <- train.airbnb %>% mutate(log.bathrooms = log(bathrooms),
+                            log.cleaningfee = log(cleaning_fee),
+                            log.securitydeposit = log(security_deposit),
+                            log.guestsincluded = log(guests_included),
+                            log.nreviews = log(number_of_reviews))
+```
+
 # Description of data
 
 Question of interest: How can we produce a model that accurately predicts the listed nightly price for an Airbnb in Asheville, NC?
@@ -131,7 +159,7 @@ Question of interest: How can we produce a model that accurately predicts the li
 Variables: 
 * host_response_rate
 * host_is_superhost
-* total_listings
+* host_listings_count
 * zipcode
 * property_type
 * room_type
@@ -167,7 +195,7 @@ Airbnb, inc. is a privately held global company headquartered in San Francisco t
 # Exploratory Data Analysis
 
 ```{r pairs-plots}
-#pairs plots for all of the explanatory variables
+#Pairs plots for all of the explanatory variables
 pairs(price ~ host_response_rate + host_is_superhost + host_listings_count, data=train.airbnb)
 pairs(price ~ zipcode + room_type + bathrooms, data=train.airbnb)
 pairs(price ~ accommodates + beds + bed_type, data=train.airbnb)
@@ -179,26 +207,131 @@ pairs(price ~ review_scores_location + review_scores_value + reviews_per_month, 
 pairs(price ~ cancellation_policy, data = train.airbnb)
 ```
 
-```{r mutate}
-train.airbnb <- train.airbnb %>% mutate(log.bathrooms = log(bathrooms),
-                            log.cleaningfee = log(cleaning_fee),
-                            log.securitydeposit = log(security_deposit),
-                            log.guestsincluded = log(guests_included),
-                            log.nreviews = log(number_of_reviews))
-```
-
-```{r}
+```{r more-pairs}
+#Pairs with log.bathrooms, log.cleaningfee, log.securitydeposit, log.guestsincluded, log.nreviews
 pairs(price ~ log.bathrooms + log.cleaningfee, data = train.airbnb)
 pairs(price ~ log.securitydeposit + log.guestsincluded + log.nreviews, data = train.airbnb)
 ```
 
-<<<<<<< HEAD
-```{r }
-=======
-# Rough Model Selection
+```{r price-boxplot, warning=FALSE}
+#Distribution of nightly price
+ggplot(train.airbnb, aes(x=price)) + geom_histogram(stat="count")
 
+#Boxplot of price by bed type
+ggplot(train.airbnb, aes(x=bed_type, y=price)) + geom_boxplot()
 ```
 
->>>>>>> d4054d9cb8bb0335573ea665e0e10390a8613a00
+# Model building
 
+*NOTE* -> we are omitting host_response_rate from our model because we were having trouble converting the variable to a numeric without losing a lot of the information. Will address before final due date. 
 
+```{r first-model, message=FALSE}
+full.model <- lm(price ~ host_is_superhost
++ host_listings_count
++ zipcode
++ room_type
++ accommodates
++ bathrooms
++ beds
++ bed_type
++ cleaning_fee
++ extra_people
++ minimum_nights
++ availability_30
++ number_of_reviews
++ review_scores_rating
++ review_scores_accuracy
++ review_scores_cleanliness
++ review_scores_checkin
++ review_scores_communication
++ review_scores_location
++ review_scores_value
++ reviews_per_month
++ cancellation_policy, data=train.airbnb)
+
+kable(tidy(full.model), digits=3)
+```
+
+```{r backwards-selection}
+backward.model <- ols_step_backward_aic(full.model, details=TRUE)
+```
+
+```{r final-main-model}
+final.main.model <- lm(price ~ host_is_superhost
++ zipcode
++ room_type
++ accommodates
++ bathrooms
++ cleaning_fee
++ minimum_nights
++ availability_30
++ review_scores_cleanliness
++ review_scores_checkin
++ review_scores_location
++ review_scores_value
++ reviews_per_month
++ cancellation_policy, data=train.airbnb)
+kable(tidy(final.main.model), digits=3)
+```
+
+```{r interactions}
+#model with interaction effects
+interactions.model <- lm(price ~ cleaning_fee * bathrooms + cleaning_fee * accommodates + room_type * bathrooms + accommodates * bathrooms + cleaning_fee * review_scores_cleanliness + zipcode * review_scores_location + availability_30 * minimum_nights + cancellation_policy * accommodates + host_is_superhost
++ host_listings_count
++ zipcode
++ room_type
++ accommodates
++ bathrooms
++ beds
++ bed_type
++ cleaning_fee
++ extra_people
++ minimum_nights
++ availability_30
++ number_of_reviews
++ review_scores_rating
++ review_scores_accuracy
++ review_scores_cleanliness
++ review_scores_checkin
++ review_scores_communication
++ review_scores_location
++ review_scores_value
++ reviews_per_month
++ cancellation_policy, data=train.airbnb)
+
+#anova test
+kable(anova(full.model, interactions.model))
+```
+
+```{r backwards-interactions, warning=FALSE}
+backwards.model.2 <- ols_step_backward_aic(interactions.model, details=TRUE)
+```
+
+```{r final-main-interactions-model}
+final.interactions.model <- lm(price ~ cleaning_fee * accommodates + accommodates * bathrooms + cleaning_fee * review_scores_cleanliness + zipcode * review_scores_location + cancellation_policy * accommodates + host_is_superhost
++ zipcode
++ room_type
++ accommodates
++ bathrooms
++ cleaning_fee
++ minimum_nights
++ availability_30
++ review_scores_cleanliness
++ review_scores_checkin
++ review_scores_location
++ review_scores_value
++ reviews_per_month
++ cancellation_policy, data=train.airbnb)
+kable(tidy(final.interactions.model), digits=3)
+summary(final.interactions.model)$adj.r.squared
+```
+
+# Assumptions
+
+1. Linearity
+
+2. Constant variance 
+
+3. Normality
+
+4. Independence 
