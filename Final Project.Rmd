@@ -21,6 +21,8 @@ library("olsrr")
 ```{r data}
 #Read file
 airbnb <- read.csv("https://raw.githubusercontent.com/athursland/STA-210/master/airbnb.csv?fbclid=IwAR0ffZSvoMPWxJjX-a4gWp2UlripEqAK0NJtu2ioHgmG0uWjCm20Hse8pNw")
+
+glimpse(airbnb)
 ```
 
 # Data Preparation
@@ -150,13 +152,15 @@ airbnb <- airbnb %>%
 ```{r price-factor, message=FALSE}
 #Make price as numeric
 airbnb$price <- as.numeric(as.character(airbnb$price))
-airbnb$price
+glimpse(airbnb$price)
+```
+
 
 #Make host_response_rate as numeric
 #airbnb$host_response_rate <- as.character(sub("%", "", airbnb$host_response_rate))
 #airbnb$host_response_rate <- as.numeric(airbnb$host_response_rate)
 #airbnb$host_response_rate
-```
+
 
 ```{r zipcode}
 #Make zipcode a factor
@@ -182,12 +186,6 @@ train.airbnb <- airbnb[train_ind, ]
 test.airbnb <- airbnb[-train_ind, ]
 ```
 
-```{r mutate-variables}
-train.airbnb <- train.airbnb %>% mutate(log.bathrooms = log(bathrooms),
-                            log.securitydeposit = log(security_deposit),
-                            log.guestsincluded = log(guests_included),
-                            log.nreviews = log(number_of_reviews))
-```
 
 # Description of data
 
@@ -248,10 +246,6 @@ pairs(price ~ review_scores_location + review_scores_value + reviews_per_month, 
 pairs(price ~ cancellation_policy, data = train.airbnb)
 ```
 
-```{r more-pairs}
-#Pairs with log.bathrooms, log.cleaningfee, log.securitydeposit, log.guestsincluded, log.nreviews
-pairs(price ~ log.securitydeposit + log.guestsincluded + log.nreviews, data = train.airbnb)
-```
 
 ```{r price-boxplot, warning=FALSE}
 #Distribution of nightly price
@@ -316,7 +310,7 @@ kable(tidy(final.main.model), digits=3)
 
 ```{r interactions}
 #model with interaction effects
-interactions.model <- lm(price ~ cleaning_fee * bathrooms + cleaning_fee * accommodates + room_type * bathrooms + accommodates * bathrooms + cleaning_fee * review_scores_cleanliness + zipcode * review_scores_location + availability_30 * minimum_nights + cancellation_policy * accommodates + host_is_superhost
+interactions.model <- lm(price ~ cleaning_fee * bathrooms + cleaning_fee * accommodates + room_type * bathrooms + accommodates * bathrooms + cleaning_fee * log.review_scores_cleanliness + zipcode * log.review_scores_location + availability_30 * minimum_nights + cancellation_policy * accommodates + host_is_superhost
 + host_listings_count
 + zipcode
 + room_type
@@ -329,14 +323,14 @@ interactions.model <- lm(price ~ cleaning_fee * bathrooms + cleaning_fee * accom
 + minimum_nights
 + availability_30
 + number_of_reviews
-+ review_scores_rating
-+ review_scores_accuracy
-+ review_scores_cleanliness
-+ review_scores_checkin
-+ review_scores_communication
-+ review_scores_location
-+ review_scores_value
-+ reviews_per_month
++ log.review_scores_rating
++ log.review_scores_accuracy
++ log.review_scores_cleanliness
++ log.review_scores_checkin
++ log.review_scores_communication
++ log.review_scores_location
++ log.review_scores_value
++ log.reviews_per_month
 + cancellation_policy, data=train.airbnb)
 
 #anova test
@@ -344,33 +338,209 @@ kable(anova(full.model, interactions.model))
 ```
 
 ```{r backwards-interactions, warning=FALSE}
-backwards.model.2 <- ols_step_backward_aic(interactions.model, details=TRUE)
+backwards.model.2 <- ols_step_backward_aic(interactions.model, details=FALSE)
 ```
 
 ```{r final-main-interactions-model}
-final.interactions.model <- lm(price ~ cleaning_fee * accommodates + accommodates * bathrooms + cleaning_fee * review_scores_cleanliness + zipcode * review_scores_location + cancellation_policy * accommodates + host_is_superhost
-+ zipcode
-+ room_type
-+ accommodates
-+ bathrooms
-+ cleaning_fee
-+ minimum_nights
-+ availability_30
-+ review_scores_cleanliness
-+ review_scores_checkin
-+ review_scores_location
-+ review_scores_value
-+ reviews_per_month
-+ cancellation_policy, data=train.airbnb)
+final.interactions.model <- lm(price ~ cleaning_fee * accommodates 
+                               + accommodates * bathrooms 
+                               + cleaning_fee * review_scores_cleanliness 
+                               + zipcode * review_scores_location 
+                               + cancellation_policy * accommodates 
+                               + host_is_superhost
+                               + zipcode
+                               + room_type
+                               + accommodates
+                               + bathrooms
+                               + cleaning_fee
+                               + minimum_nights
+                               + availability_30
+                               + log.review_scores_cleanliness
+                               + log.review_scores_checkin
+                               + log.review_scores_location
+                               + log.reviews_per_month
+                               + cancellation_policy, data=train.airbnb)
 kable(tidy(final.interactions.model), digits=3)
 summary(final.interactions.model)$adj.r.squared
 ```
 
 # Assumptions
 
-```{r resids}
+```{r resids 2}
 train.airbnb <- train.airbnb %>% mutate(stand.resid = rstandard(final.interactions.model),
                                         pred = predict(final.interactions.model))
+
+```
+
+```{r residual-plots 2}
+ggplot(data = train.airbnb, aes(x=stand.resid)) + geom_histogram()
+qqnorm(train.airbnb$stand.resid)
+
+p1 <- ggplot(data = train.airbnb, aes(x=pred, y=stand.resid)) + geom_point() + 
+  labs(x="Predicted", y="Residual", title="Residuals vs Predicted",
+subtitle=("final.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p2 <- ggplot(data = train.airbnb, aes(x=host_is_superhost, y=stand.resid)) + geom_point() + 
+  labs(x="Predicted", y="Residual", title="Residuals vs Superhost",
+subtitle=("final.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p3 <- ggplot(data = train.airbnb, aes(x=zipcode, y=stand.resid)) + geom_point() + 
+  labs(x="Predicted", y="Residual", title="Residuals vs Zipcode",
+subtitle=("final.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p4 <- ggplot(data = train.airbnb, aes(x=room_type, y=stand.resid)) + geom_point() + 
+  labs(x="Predicted", y="Residual", title="Residuals vs Room Type",
+subtitle=("final.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p5 <- ggplot(data = train.airbnb, aes(x=accommodates, y=stand.resid)) + geom_point() + 
+  labs(x="Number of Guests", y="Residual", title="Residuals vs Accommodates",
+subtitle=("final.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p6 <- ggplot(data = train.airbnb, aes(x=bathrooms, y=stand.resid)) + geom_point() + 
+  labs(x="Number of Bathrooms", y="Residual", title="Residuals vs Bathrooms",
+subtitle=("final.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p7 <- ggplot(data = train.airbnb, aes(x= cleaning_fee, y=stand.resid)) + geom_point() + 
+  labs(x="Fee ($)", y="Residual", title="Residuals vs Cleaning Fee",
+subtitle=("final.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p8 <-ggplot(data = train.airbnb, aes(x=minimum_nights, y=stand.resid)) + geom_point() + 
+  labs(x="Minimum Nights", y="Residual", title="Residuals vs Minimum_nights",
+subtitle=("final.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p9 <- ggplot(data = train.airbnb, aes(x=availability_30, y=stand.resid)) + geom_point() + 
+  labs(x="Number of Available Nights in the next month", y="Residual", title="Residuals vs Availability",
+subtitle=("final.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p10 <- ggplot(data = train.airbnb, aes(x=log.review_scores_cleanliness, y=stand.resid)) + geom_point() + 
+  labs(x="Cleanliness Review (out of 100%)", y="Residual", title="Residuals vs Cleanliness Review Scores",
+subtitle=("final.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p11 <- ggplot(data = train.airbnb, aes(x=log.review_scores_checkin, y=stand.resid)) + geom_point() + 
+  labs(x="Check-In Review (out of 100%)", y="Residual", title="Residuals vs Check-In Review Scores",
+subtitle=("final.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p12 <- ggplot(data = train.airbnb, aes(x=log.review_scores_location, y=stand.resid)) + geom_point() + 
+  labs(x="Location Review (out of 100%)", y="Residual", title="Residuals vs Location Review Scores",
+subtitle=("final.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p13 <- ggplot(data = train.airbnb, aes(x=log.reviews_per_month, y=stand.resid)) + geom_point() + 
+  labs(x="Reviews per month", y="Residual", title="Residuals vs Log Reviews per month",
+subtitle=("final.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p15 <- ggplot(data = train.airbnb, aes(x=cancellation_policy, y=stand.resid)) + geom_point() + 
+  labs(x="Cancellation Policy", y="Residual", title="Residuals vs Cancellation Policy",
+subtitle=("final.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+```
+
+
+```{r}
+plot_grid(p1,p2,p3,p4)
+plot_grid(p5,p6,p7,p8)
+plot_grid(p9,p10,p11,p12)
+plot_grid(p13,p15)
+```
+
+
+plots - log cleaning fee
+
+2. Constant variance 
+
+3. Normality
+
+4. Independence 
+
+
+5. Leverage Points/ outliers
+
+```{r outliers}
+train.airbnb <- train.airbnb %>%
+  mutate(leverage = hatvalues(final.interactions.model), 
+         cooks = cooks.distance(final.interactions.model),
+         obs.num = row_number())
+
+ggplot(data=train.airbnb, aes(x=obs.num,y=leverage)) + 
+  geom_point(alpha=0.5) + 
+  geom_hline(yintercept=36/1520,color="red")+
+  labs(x="Observation Number",y="Leverage",title="Leverage")
+
+ggplot(data=train.airbnb, aes(x=obs.num,y=cooks)) + 
+  geom_point() + 
+  geom_hline(yintercept=1,color="red")+
+  labs(x="Observation Number",y="Cook's Distance",title="Cook's Distance")
+```
+
+# Prediction 
+
+```{r predict-testing, warning=FALSE}
+#Predict on the testing set using our final model
+test.predict <- predict(final.interactions.model, data = test.airbnb)
+test.airbnb <- cbind(test.airbnb,test.predict)
+
+test.resid <- test.airbnb$price - test.predict
+test.airbnb <- cbind(test.airbnb,test.resid)
+
+ggplot(test.airbnb, aes(x=test.predict, y=test.resid)) + geom_point()
+ggplot(test.airbnb, aes(x=test.predict, y=price)) + geom_point()
+```
+
+
+# Alternative Models
+```{r, forwards, warning=FALSE}
+#forward.model <- ols_step_forward_aic(interactions.model, details=FALSE)
+# no go
+
+```
+
+```{r, self selected model}
+self.model <- lm(price ~ accommodates * bathrooms 
+                               + cleaning_fee * review_scores_cleanliness
+                               + cancellation_policy * accommodates 
+                               + room_type
+                               + accommodates
+                               + bathrooms
+                               + cleaning_fee
+                               + minimum_nights
+                               + availability_30
+                               + log.reviews_per_month
+                               + cancellation_policy, data=train.airbnb)
+kable(tidy(final.interactions.model), digits=3)
+summary(final.interactions.model)$adj.r.squared
+```
+
+# Self Assumptions
+
+```{r resids}
+train.airbnb <- train.airbnb %>% mutate(stand.resid = rstandard(self.model),
+                                        pred = predict(self.model))
 
 ```
 
@@ -432,32 +602,26 @@ subtitle=("final.interactions.model"))+
 theme(plot.title = element_text(hjust = 0.5,size=14),
 plot.subtitle=element_text(hjust=0.5,size=10))
 
-p10 <- ggplot(data = train.airbnb, aes(x=review_scores_cleanliness, y=stand.resid)) + geom_point() + 
+p10 <- ggplot(data = train.airbnb, aes(x=log.review_scores_cleanliness, y=stand.resid)) + geom_point() + 
   labs(x="Cleanliness Review (out of 100%)", y="Residual", title="Residuals vs Cleanliness Review Scores",
 subtitle=("final.interactions.model"))+
 theme(plot.title = element_text(hjust = 0.5,size=14),
 plot.subtitle=element_text(hjust=0.5,size=10))
 
-p11 <- ggplot(data = train.airbnb, aes(x=review_scores_checkin, y=stand.resid)) + geom_point() + 
+p11 <- ggplot(data = train.airbnb, aes(x=log.review_scores_checkin, y=stand.resid)) + geom_point() + 
   labs(x="Check-In Review (out of 100%)", y="Residual", title="Residuals vs Check-In Review Scores",
 subtitle=("final.interactions.model"))+
 theme(plot.title = element_text(hjust = 0.5,size=14),
 plot.subtitle=element_text(hjust=0.5,size=10))
 
-p12 <- ggplot(data = train.airbnb, aes(x=review_scores_location, y=stand.resid)) + geom_point() + 
+p12 <- ggplot(data = train.airbnb, aes(x=log.review_scores_location, y=stand.resid)) + geom_point() + 
   labs(x="Location Review (out of 100%)", y="Residual", title="Residuals vs Location Review Scores",
 subtitle=("final.interactions.model"))+
 theme(plot.title = element_text(hjust = 0.5,size=14),
 plot.subtitle=element_text(hjust=0.5,size=10))
 
-p13 <- ggplot(data = train.airbnb, aes(x=review_scores_value, y=stand.resid)) + geom_point() + 
-  labs(x="Value Review (out of 100%)", y="Residual", title="Residuals vs Value Review Scores",
-subtitle=("final.interactions.model"))+
-theme(plot.title = element_text(hjust = 0.5,size=14),
-plot.subtitle=element_text(hjust=0.5,size=10))
-
-p14 <- ggplot(data = train.airbnb, aes(x=reviews_per_month, y=stand.resid)) + geom_point() + 
-  labs(x="Reviews per month", y="Residual", title="Residuals vs Reviews per month",
+p13 <- ggplot(data = train.airbnb, aes(x=log.reviews_per_month, y=stand.resid)) + geom_point() + 
+  labs(x="Reviews per month", y="Residual", title="Residuals vs Log Reviews per month",
 subtitle=("final.interactions.model"))+
 theme(plot.title = element_text(hjust = 0.5,size=14),
 plot.subtitle=element_text(hjust=0.5,size=10))
@@ -474,42 +638,43 @@ plot.subtitle=element_text(hjust=0.5,size=10))
 plot_grid(p1,p2,p3,p4)
 plot_grid(p5,p6,p7,p8)
 plot_grid(p9,p10,p11,p12)
-plot_grid(p13,p14,p15)
+plot_grid(p13,p15)
 ```
 
-
-plots - log cleaning fee
-
-2. Constant variance 
-
-3. Normality
-
-4. Independence 
-
-
-5. Leverage Points/ outliers
-
-```{r outliers}
-train.airbnb <- train.airbnb %>%
-  mutate(leverage = hatvalues(final.interactions.model), 
-         cooks = cooks.distance(final.interactions.model),
-         obs.num = row_number())
-
-ggplot(data=train.airbnb, aes(x=obs.num,y=leverage)) + 
-  geom_point(alpha=0.5) + 
-  geom_hline(yintercept=0.,color="red")+
-  labs(x="Observation Number",y="Leverage",title="Leverage")
-
-ggplot(data=train.airbnb, aes(x=obs.num,y=cooks)) + 
-  geom_point() + 
-  geom_hline(yintercept=1,color="red")+
-  labs(x="Observation Number",y="Cook's Distance",title="Cook's Distance")
+```{r predict-testing for self, warning=FALSE}
 ```
 
-# Prediction 
-
-```{r predict-testing, warning=FALSE}
+```{r}
 #Predict on the testing set using our final model
-test.predict <- predict(final.interactions.model, test.airbnb)
-test.predict
+test.self.predict <- predict(self.model, data = test.airbnb)
+test.airbnb <- cbind(test.airbnb,test.self.predict)
+
+test.self.resid <- test.airbnb$price - test.self.predict
+test.airbnb <- cbind(test.airbnb,test.self.resid)
+
+ggplot(test.airbnb, aes(x=test.self.predict, y=test.self.resid)) + geom_point()
+ggplot(test.airbnb, aes(x=test.self.predict, y=price)) + geom_point()
 ```
+
+
+
+# Logistic Model attempt
+```{r, create categorical variable price range}
+
+glimpse(airbnb)
+
+airbnb <- airbnb %>% mutate(pricerange = ifelse(price %in% 0:100, "low", 
+                                                ifelse(price %in% 101:200, "moderate",
+                                                       ifelse(price %in% 201:300, "high",
+                                                              "expensive"))))
+
+```
+
+```{r, logmodel}
+table <- airbnb %>% group_by(pricerange) %>% summarise(n=n())
+kable(table)
+```
+
+
+
+
