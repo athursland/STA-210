@@ -368,13 +368,13 @@ summary(final.interactions.model)$adj.r.squared
 
 # Assumptions
 
-```{r}
+```{r resids}
 train.airbnb <- train.airbnb %>% mutate(stand.resid = rstandard(final.interactions.model),
                                         pred = predict(final.interactions.model))
 
 ```
 
-```{r}
+```{r residual-plots}
 ggplot(data = train.airbnb, aes(x=stand.resid)) + geom_histogram()
 qqnorm(train.airbnb$stand.resid)
 
@@ -484,13 +484,12 @@ plots - log cleaning fee
 
 3. Normality
 
-<<<<<<< HEAD
 4. Independence 
 
 
 5. Leverage Points/ outliers
 
-```{r}
+```{r outliers}
 train.airbnb <- train.airbnb %>%
   mutate(leverage = hatvalues(final.interactions.model), 
          cooks = cooks.distance(final.interactions.model),
@@ -505,12 +504,7 @@ ggplot(data=train.airbnb, aes(x=obs.num,y=cooks)) +
   geom_point() + 
   geom_hline(yintercept=1,color="red")+
   labs(x="Observation Number",y="Cook's Distance",title="Cook's Distance")
-
-
-
 ```
-=======
-4. Independence
 
 # Prediction 
 
@@ -519,5 +513,3 @@ ggplot(data=train.airbnb, aes(x=obs.num,y=cooks)) +
 test.predict <- predict(final.interactions.model, test.airbnb)
 test.predict
 ```
-
->>>>>>> 7908b9b1aeedc695e3fe7a5189806fcc47b5a031
