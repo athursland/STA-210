@@ -96,6 +96,48 @@ airbnb <- airbnb %>%
     is.na(reviews_per_month) ~ 0, 
     !is.na(reviews_per_month) ~ reviews_per_month)
     )
+```
+
+```{r transform-reviews}
+#Log transform reviews_per_month
+airbnb <- airbnb %>% 
+  mutate(reviews_per_month.1 = reviews_per_month + 1,
+  log.reviews_per_month = log(reviews_per_month.1))
+
+#Log transform review_scores_rating
+airbnb <- airbnb %>% 
+  mutate(review_scores_rating.1 = review_scores_rating + 1,
+  log.review_scores_rating = log(review_scores_rating.1))
+
+#Log transform reviews_scores_value
+airbnb <- airbnb %>% 
+  mutate(review_score_value.1 = review_scores_value + 1,
+  log.review_scores_value = log(review_score_value.1))
+
+#Log transform review_scores_location
+airbnb <- airbnb %>% 
+  mutate(review_scores_location.1 = review_scores_location + 1,
+  log.review_scores_location = log(review_scores_location.1))
+
+#Log transform review_scores_communication
+airbnb <- airbnb %>% 
+  mutate(review_scores_communication.1 = review_scores_communication + 1,
+  log.review_scores_communication = log(review_scores_communication.1))
+
+#Log transform review_scores_checkin
+airbnb <- airbnb %>% 
+  mutate(review_scores_checkin.1 = review_scores_checkin + 1,
+  log.review_scores_checkin = log(review_scores_checkin.1))
+
+#Log transform review_scores_accuracy
+airbnb <- airbnb %>% 
+  mutate(review_scores_accuracy.1 = review_scores_accuracy + 1,
+  log.review_scores_accuracy = log(review_scores_accuracy.1))
+
+#Log transform review_scores_cleanliness
+airbnb <- airbnb %>% 
+  mutate(review_scores_cleanliness.1 = review_scores_cleanliness + 1,
+  log.review_scores_cleanliness = log(review_scores_cleanliness.1))
 
 #Make NAs = 0 for host_response_rate
 #airbnb <- airbnb %>% 
@@ -133,7 +175,7 @@ airbnb <- airbnb[complete.cases(airbnb),]
 smp_size <- floor(0.80 * nrow(airbnb))
 
 #set the seed to make your partition reproducible
-set.seed(12345)
+set.seed(123456)
 train_ind <- sample(seq_len(nrow(airbnb)), size = smp_size)
 
 train.airbnb <- airbnb[train_ind, ]
@@ -239,14 +281,14 @@ full.model <- lm(price ~ host_is_superhost
 + minimum_nights
 + availability_30
 + number_of_reviews
-+ review_scores_rating
-+ review_scores_accuracy
-+ review_scores_cleanliness
-+ review_scores_checkin
-+ review_scores_communication
-+ review_scores_location
-+ review_scores_value
-+ reviews_per_month
++ log.review_scores_rating
++ log.review_scores_accuracy
++ log.review_scores_cleanliness
++ log.review_scores_checkin
++ log.review_scores_communication
++ log.review_scores_location
++ log.review_scores_value
++ log.reviews_per_month
 + cancellation_policy, data=train.airbnb)
 
 kable(tidy(full.model), digits=3)
@@ -334,4 +376,13 @@ summary(final.interactions.model)$adj.r.squared
 
 3. Normality
 
-4. Independence 
+4. Independence
+
+# Prediction 
+
+```{r predict-testing, warning=FALSE}
+#Predict on the testing set using our final model
+test.predict <- predict(final.interactions.model, test.airbnb)
+test.predict
+```
+
