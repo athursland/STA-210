@@ -654,6 +654,13 @@ test.airbnb <- cbind(test.airbnb,test.self.resid)
 
 ggplot(test.airbnb, aes(x=test.self.predict, y=test.self.resid)) + geom_point()
 ggplot(test.airbnb, aes(x=test.self.predict, y=price)) + geom_point()
+
+mse.train <- summary(self.model)$sigma^2
+mse.test  <- sum((test.self.resid)^2)/(nrow(test.airbnb)-2)
+
+print(mse.train)
+print(mse.test)
+
 ```
 
 
