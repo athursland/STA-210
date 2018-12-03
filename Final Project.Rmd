@@ -511,5 +511,4 @@ ggplot(data=train.airbnb, aes(x=obs.num,y=cooks)) +
 ```{r predict-testing, warning=FALSE}
 #Predict on the testing set using our final model
 test.predict <- predict(final.interactions.model, test.airbnb)
-test.predict
 ```
