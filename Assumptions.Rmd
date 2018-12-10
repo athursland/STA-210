@@ -7,7 +7,7 @@ output: pdf_document
 
 # == Setup ==
 
-```{r setup, warning=FALSE, echo=FALSE, message=FALSE}
+```{r setup, warning=FALSE, message=FALSE}
 #Setup
 library("dplyr")
 library("ggplot2")
@@ -23,7 +23,7 @@ library("car")
 
 # == Read in Data == 
 
-```{r data, warning=FALSE, message=FALSE, echo=FALSE}
+```{r data, warning=FALSE, message=FALSE}
 airbnb <- read_csv("https://raw.githubusercontent.com/athursland/STA-210/master/finalairbnb.csv")
 ```
 
@@ -56,7 +56,6 @@ stepwise.interactions.model <- lm(logprice ~ cleaning_fee * accommodates + avail
 kable(tidy(stepwise.interactions.model), format="markdown", digits = 4)
 kable(glance(stepwise.interactions.model))
 ```
-```
 
 # == Assumptions == 
 
@@ -68,53 +67,84 @@ There are 5 assumptions for multiple linear regression:
 
 Additionally, we must avoid outliers/multicollinearity in our final model. 
 
-```{r pairs-plots}
-pairs(logprice ~ accommodates + bathrooms, data = train.airbnb)
+First, we will address multicollinearity. We chose not to include all three of the variables accommodates, bathrooms and beds because there was obvious multicollinearity present between all of them - which makes sense when you think about it. After looking at the p-values of all three variables in a full model, we chose to omit beds and bathrooms for having high p-values, and self-selected accommodates in the model.
+
+```{r full}
+#Example model including beds and bathrooms
+not.final.model <- lm(logprice ~ cleaning_fee * accommodates + availability_30 * minimum_nights
++ host_is_superhost
++ room_type
++ accommodates
++ cleaning_fee
++ minimum_nights
++ availability_30
++ bathrooms
++ beds
++ log.reviews_per_month
++ cancellation_policy, data=train.airbnb)
 ```
 
-```{r resids 2}
+```{r pairs-plots, warning=FALSE}
+#Check VIF for accommodates and bathrooms
+tidy(vif(not.final.model))
+#Pairs plots of accommodates and bathrooms
+pairs(logprice ~ accommodates + bathrooms + beds, data = train.airbnb)
+```
+
+```{r stand-resids-predicted}
+#Standard residuals and predicted values
 train.airbnb <- train.airbnb %>% mutate(stand.resid = rstandard(stepwise.interactions.model),
                                         pred = predict(stepwise.interactions.model))
-
 ```
 
 ```{r stand-resids-qq}
+#Histogram of the standard residuals
 ggplot(data = train.airbnb, aes(x=stand.resid)) + geom_histogram()
+#QQ-norm plot
 qqnorm(train.airbnb$stand.resid)
 ```
 
+According to the histogram of our standardized residuals and our QQ-norm plot, our standardized residuals appear to be approximately normally distributed. This means that our normality assumption has been satisfied. 
+
+Next, we will plot our residuals against each of the numeric explanatory variables.
+
 ```{r resids-explanatory}
+#Residuals vs. predicted
 p1 <- ggplot(data = train.airbnb, aes(x=pred, y=stand.resid)) + geom_point() + 
   labs(x="Predicted", y="Residual", title="Residuals vs Predicted",
 subtitle=("backwards.interactions.model"))+
 theme(plot.title = element_text(hjust = 0.5,size=14),
 plot.subtitle=element_text(hjust=0.5,size=10))
 
-
+#Residuals vs. accommodates
 p2 <- ggplot(data = train.airbnb, aes(x=accommodates, y=stand.resid)) + geom_point() + 
   labs(x="Number of Guests", y="Residual", title="Residuals vs Accommodates",
 subtitle=("backwards.interactions.model"))+
 theme(plot.title = element_text(hjust = 0.5,size=14),
 plot.subtitle=element_text(hjust=0.5,size=10))
 
+#Residuals vs. cleaning_fee
 p3 <- ggplot(data = train.airbnb, aes(x= cleaning_fee, y=stand.resid)) + geom_point() + 
   labs(x="Fee ($)", y="Residual", title="Residuals vs Cleaning Fee",
 subtitle=("Backwards.interactions.model"))+
 theme(plot.title = element_text(hjust = 0.5,size=14),
 plot.subtitle=element_text(hjust=0.5,size=10))
 
+#Residuals vs. minimum_nights
 p4 <-ggplot(data = train.airbnb, aes(x=minimum_nights, y=stand.resid)) + geom_point() + 
   labs(x="Minimum Nights", y="Residual", title="Residuals vs Minimum_nights",
 subtitle=("Backwards.interactions.model"))+
 theme(plot.title = element_text(hjust = 0.5,size=14),
 plot.subtitle=element_text(hjust=0.5,size=10))
 
+#Residuals vs. availability_30
 p5 <- ggplot(data = train.airbnb, aes(x=availability_30, y=stand.resid)) + geom_point() + 
   labs(x="Number of Available Nights in the next month", y="Residual", title="Residuals vs Availability",
 subtitle=("backwards.interactions.model"))+
 theme(plot.title = element_text(hjust = 0.5,size=14),
 plot.subtitle=element_text(hjust=0.5,size=10))
 
+#Residuals vs. log.reviews_per_month
 p6 <- ggplot(data = train.airbnb, aes(x=log.reviews_per_month, y=stand.resid)) + geom_point() + 
   labs(x="Reviews per month", y="Residual", title="Residuals vs Log Reviews per month",
 subtitle=("backwards.interactions.model"))+
@@ -123,25 +153,31 @@ plot.subtitle=element_text(hjust=0.5,size=10))
 ```
 
 ```{r plot-residuals}
+#plot all of the previous graphs
 plot_grid(p1,p2,p3,p4)
 plot_grid(p5,p6)
 ```
 
+All of our residuals are approximately randomly distributed. There are some observations that appear like potential outliers, but we will address this later in our assumptions. In addition, we have an extremely large number of observations, so the effect of any few outliers would likely be minimal. There are no distinct patterns visible in any of our plots. Therefore, our constant variance assumption has been met. 
+
 ```{r outliers}
+#Calculate leverage, cook's distance and the observation number
 train.airbnb <- train.airbnb %>%
   mutate(leverage = hatvalues(stepwise.interactions.model), 
          cooks = cooks.distance(stepwise.interactions.model),
          obs.num = row_number())
 
+#Plot of leverage
 ggplot(data=train.airbnb, aes(x=obs.num,y=leverage)) + 
   geom_point(alpha=0.5) + 
   geom_hline(yintercept=36/1520,color="red")+
   labs(x="Observation Number",y="Leverage",title="Leverage")
 
+#Plot of Cook's Distance 
 ggplot(data=train.airbnb, aes(x=obs.num,y=cooks)) + 
   geom_point() + 
   geom_hline(yintercept=1,color="red")+
   labs(x="Observation Number",y="Cook's Distance",title="Cook's Distance")
-
-tidy(vif(stepwise.interactions.model))
 ```
+
+Although there are quite a few observations with large leverage, according to our Cook's Distance, none of these are influential. 
