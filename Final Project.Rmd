@@ -193,7 +193,7 @@ Question of interest: How can we produce a model that accurately predicts the li
 
   The data set we are using is a .csv file of every AirBnB listing in the city of Asheville, North Carolina as of October 17, 2018 . Each observation is an individual listing. We sourced this data from Inside AirBnB, a website that regularly scrapes data from AirBnB’s listings and provides them as public data sets separated by city.
 
-  The original data set was very large (96 columns and 1,936 observations), so we reduced it for simplicity’s sake. We chose 26 columns that could potentially be of interest for a regression analysis, and we created one more column called has_reviews, which is an indicator variable. We noticed that some columns, like cleaning_fee and security_deposit, had a lot of NAs, so instead of omitting all of these observations we mutated NAs from these columns to be 0s. We were left with 24 incomplete cases, likely the result of web scraping errors, and so we chose to omit them. Our final number of columns was 27 and our final number of rows was 1,911. 
+  The original data set was very large (96 columns and 1,936 observations), so we reduced it for simplicity’s sake. We chose 26 columns that could potentially be of interest for a regression analysis, and we created one more column called has_reviews, which is an indicator variable. We noticed that some columns, like cleaning_fee and security_deposit, had a lot of NAs, so instead of omitting all of these observations we mutated NAs from these columns to be 0s. We were left with 24 incomplete cases, likely the result of web scraping errors, and so we chose to omit them. Our final number of columns was 27 and our final number of rows was 1,900. 
 
 Variables: 
 * host_response_rate
@@ -249,10 +249,16 @@ pairs(price ~ cancellation_policy, data = train.airbnb)
 
 ```{r price-boxplot, warning=FALSE}
 #Distribution of nightly price
-ggplot(train.airbnb, aes(x=price)) + geom_histogram(stat="count")
+ggplot(train.airbnb, aes(x=price)) + geom_histogram(stat="count") + labs(title="Distribution of nightly prices")
 
 #Boxplot of price by bed type
-ggplot(train.airbnb, aes(x=bed_type, y=price)) + geom_boxplot()
+ggplot(train.airbnb, aes(x=bed_type, y=price)) + geom_boxplot() + labs(title="Distribution of nightly price by bed type")
+
+#Boxplot of price by room type
+ggplot(train.airbnb, aes(x=room_type, y=price)) + geom_boxplot() + labs(title="Distribution of nightly price by room type")
+
+ggplot(train.airbnb, aes(x=cleaning_fee)) + geom_histogram(stat="count") + labs(title="Distribution of cleaning fees")
+
 ```
 
 # Model building
@@ -502,9 +508,8 @@ ggplot(data=train.airbnb, aes(x=obs.num,y=cooks)) +
 
 ```{r predict-testing, warning=FALSE}
 #Predict on the testing set using our final model
-<<<<<<< HEAD
 test.predict <- predict(final.interactions.model, test.airbnb)
-=======
+
 test.predict <- predict(final.interactions.model, data = test.airbnb)
 test.airbnb <- cbind(test.airbnb,test.predict)
 
@@ -513,16 +518,10 @@ test.airbnb <- cbind(test.airbnb,test.resid)
 
 ggplot(test.airbnb, aes(x=test.predict, y=test.resid)) + geom_point()
 ggplot(test.airbnb, aes(x=test.predict, y=price)) + geom_point()
->>>>>>> e4445600b72ee23166be07c1c573cee34218873d
 ```
 
 
 # Alternative Models
-```{r, forwards, warning=FALSE}
-#forward.model <- ols_step_forward_aic(interactions.model, details=FALSE)
-# no go
-
-```
 
 ```{r, self selected model}
 self.model <- lm(price ~ accommodates * bathrooms 
@@ -540,12 +539,11 @@ kable(tidy(final.interactions.model), digits=3)
 summary(final.interactions.model)$adj.r.squared
 ```
 
-# Self Assumptions
+# Self Assumptions: Final Assumptions
 
 ```{r resids}
 train.airbnb <- train.airbnb %>% mutate(stand.resid = rstandard(self.model),
                                         pred = predict(self.model))
-
 ```
 
 ```{r residual-plots}
@@ -645,8 +643,6 @@ plot_grid(p9,p10,p11,p12)
 plot_grid(p13,p15)
 ```
 
-```{r predict-testing for self, warning=FALSE}
-```
 
 ```{r}
 #Predict on the testing set using our final model
@@ -664,10 +660,7 @@ mse.test  <- sum((test.self.resid)^2)/(nrow(test.airbnb)-2)
 
 print(mse.train)
 print(mse.test)
-
 ```
-
-
 
 # Logistic Model attempt
 ```{r, create categorical variable price range}
