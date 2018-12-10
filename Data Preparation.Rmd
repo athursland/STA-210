@@ -1,0 +1,272 @@
+---
+title: "Data Preparation"
+author: "Ali Thursland and Mary Helen Wood"
+date: "12/10/2018"
+output: pdf_document
+---
+# == Setup ==
+
+```{r setup, warning=FALSE, echo=FALSE, message=FALSE}
+#Setup
+library("dplyr")
+library("ggplot2")
+library("broom")
+library("knitr")
+library("cowplot")
+library("readr")
+library("dslabs")
+library("varhandle")
+library("olsrr")
+library("car")
+```
+
+# == Introduction == 
+
+In producing our analysis, our data required a **lot** of manipulation. Instead of including all of this code in our analysis' .Rmd file, we decided to instead make a separate .Rmd and save the resulting data as a new .csv file, which we then used in our analysis. We did this for simplicity and readability's sake; while not an integral part of our analysis, we think that the time we put into making our data workable was important.
+
+# == Reading in our Data ==
+
+```{r data}
+#Read file
+airbnb <- read.csv("https://raw.githubusercontent.com/athursland/STA-210/master/airbnb.csv?fbclid=IwAR0ffZSvoMPWxJjX-a4gWp2UlripEqAK0NJtu2ioHgmG0uWjCm20Hse8pNw")
+```
+
+Because not every Airbnb listing in our dataset had reviews, we didn't want the regression model to be affected by listings that lacked reviews. We weren't sure if number_of_reviews was a strong predictor yet, so we chose to make the indicator variable has_reviews, which would be 1 if the listing had any reviews and 0 if the listing has no reviews. 
+
+```{r manipulating-data-1}
+#Make new variable has_reviews
+airbnb <- airbnb %>% 
+  mutate(has_reviews = case_when( 
+    number_of_reviews == 0 ~ 0, 
+    number_of_reviews > 0 ~ 1)
+  )
+```
+
+For the rest of our variables, we needed to do something to account for the high quantity of NAs present in our data. Instead of omitting all of these incomplete cases (which would greatly reduce the size of our data set) we chose to code NAs as 0's for all of our numeric variables. 
+
+```{r manipulating-data-2}
+#Make NAs = 0 for security_deposit
+airbnb <- airbnb %>% 
+  mutate(security_deposit = if_else(is.na(security_deposit),0,security_deposit))
+```
+
+```{r manipulating-data-3}
+#Make NAs = 0 for cleaning_fee
+airbnb <- airbnb %>% 
+  mutate(cleaning_fee = if_else(is.na(cleaning_fee),0,cleaning_fee))
+```
+
+```{r manipulating-data-4}
+#Make NAs = 0 for review_scores_rating
+airbnb <- airbnb %>% 
+  mutate(review_scores_rating = case_when(
+    is.na(review_scores_rating) ~ 0, 
+    !is.na(review_scores_rating) ~ review_scores_rating)
+    )
+```
+
+```{r manipulating-data-5}
+#Make NAs = 0 for review_scores_accuracy
+airbnb <- airbnb %>% 
+  mutate(review_scores_accuracy = case_when(
+    is.na(review_scores_accuracy) ~ 0, 
+    !is.na(review_scores_accuracy) ~ review_scores_accuracy)
+    )
+```
+
+```{r manipulating-data-6}
+#Make NAs = 0 for review_scores_cleanliness
+airbnb <- airbnb %>% 
+  mutate(review_scores_cleanliness = case_when( 
+    is.na(review_scores_cleanliness) ~ 0, 
+    !is.na(review_scores_cleanliness) ~ review_scores_cleanliness)
+    )
+```
+
+```{r manipulating-data-7}
+#Make NAs = 0 for review_scores_checkin
+airbnb <- airbnb %>% 
+  mutate(review_scores_checkin = case_when( 
+    is.na(review_scores_checkin) ~ 0, 
+    !is.na(review_scores_checkin) ~ review_scores_checkin)
+    )
+```
+
+```{r manipulating-data-8}
+#Make NAs = 0 for review_scores_communcation
+airbnb <- airbnb %>% 
+  mutate(review_scores_communication = case_when( 
+    is.na(review_scores_communication) ~ 0, 
+    !is.na(review_scores_communication) ~ review_scores_communication)
+    )
+```
+
+```{r manipulating-data-9}
+#Make NAs = 0 for review_sores_location 
+airbnb <- airbnb %>% 
+  mutate(review_scores_location = case_when( 
+    is.na(review_scores_location) ~ 0, 
+    !is.na(review_scores_location) ~ review_scores_location)
+    )
+```
+
+```{r manipulating-data-10}
+#Make NAs = 0 for review_scores_value
+airbnb <- airbnb %>% 
+  mutate(review_scores_value = case_when( 
+    is.na(review_scores_value) ~ 0, 
+    !is.na(review_scores_value) ~ review_scores_value)
+    )
+```
+
+```{r manipulating-data-11}
+#Make NAs = 0 for reviews_per_month
+airbnb <- airbnb %>% 
+  mutate(reviews_per_month = case_when( 
+    is.na(reviews_per_month) ~ 0, 
+    !is.na(reviews_per_month) ~ reviews_per_month)
+    )
+```
+
+After this, we took a look at a pairs plot of our all of our variables. We saw that there seemed to be a non-linear relationship between our various review_scores variables, number_of_reviews and reviews_per_month, so we decided to log transform each of these. The original and resultant pairs plots can be seen below. While the pairs plots for the log-transformed variables aren't perfect, they look better than the originals.
+
+```{r pairs-original}
+#Original pairs plots before transforming
+pairs(data=airbnb, price ~ reviews_per_month + review_scores_rating + review_scores_value)
+pairs(data=airbnb, price ~ review_scores_location + review_scores_communication + review_scores_accuracy)
+pairs(data=airbnb, price ~ review_scores_checkin + review_scores_cleanliness + number_of_reviews)
+```
+
+```{r transform-reviews}
+#Log transform reviews_per_month
+airbnb <- airbnb %>% 
+  mutate(reviews_per_month.1 = reviews_per_month + 1,
+  log.reviews_per_month = log(reviews_per_month.1))
+
+#Log transform review_scores_rating
+airbnb <- airbnb %>% 
+  mutate(review_scores_rating.1 = review_scores_rating + 1,
+  log.review_scores_rating = log(review_scores_rating.1))
+
+#Log transform reviews_scores_value
+airbnb <- airbnb %>% 
+  mutate(review_score_value.1 = review_scores_value + 1,
+  log.review_scores_value = log(review_score_value.1))
+
+#Log transform review_scores_location
+airbnb <- airbnb %>% 
+  mutate(review_scores_location.1 = review_scores_location + 1,
+  log.review_scores_location = log(review_scores_location.1))
+
+#Log transform review_scores_communication
+airbnb <- airbnb %>% 
+  mutate(review_scores_communication.1 = review_scores_communication + 1,
+  log.review_scores_communication = log(review_scores_communication.1))
+
+#Log transform review_scores_checkin
+airbnb <- airbnb %>% 
+  mutate(review_scores_checkin.1 = review_scores_checkin + 1,
+  log.review_scores_checkin = log(review_scores_checkin.1))
+
+#Log transform review_scores_accuracy
+airbnb <- airbnb %>% 
+  mutate(review_scores_accuracy.1 = review_scores_accuracy + 1,
+  log.review_scores_accuracy = log(review_scores_accuracy.1))
+
+#Log transform review_scores_cleanliness
+airbnb <- airbnb %>% 
+  mutate(review_scores_cleanliness.1 = review_scores_cleanliness + 1,
+  log.review_scores_cleanliness = log(review_scores_cleanliness.1))
+
+#log transform number_of_reviews
+airbnb <- airbnb %>% 
+  mutate(number_of_reviews.1 = number_of_reviews + 1,
+  log.number_of_reviews = log(number_of_reviews.1))
+```
+
+```{r pairs-transformed}
+#Pairs plots after transforming
+pairs(data=airbnb, price ~ log.reviews_per_month + log.review_scores_rating + log.review_scores_value)
+pairs(data=airbnb, price ~ log.review_scores_location + log.review_scores_communication + log.review_scores_accuracy)
+pairs(data=airbnb, price ~ log.review_scores_checkin + log.review_scores_cleanliness + log.number_of_reviews)
+```
+
+Price was originally not considered a numberic variable, so we needed to mutate it to be such. 
+
+```{r price-factor, message=FALSE}
+#Make price as numeric
+airbnb$price <- as.numeric(as.character(airbnb$price))
+```
+
+When we looked at the p-values for a full model, we noticed that of the 12 different levels of the variable zipcode, only two were significant - the rest had very high p-values. To deal with this, we decided to make two indicator variables to indicate whether or not the listing is in one of those  significant zipcodes, 28801 and 28805. We made these variables factors and set the reference level as "no". 
+
+```{r zipcode}
+#Make zipcode a factor
+airbnb$zipcode <- as.factor(airbnb$zipcode)
+
+# Make zipcode indicator for 28801
+airbnb <- airbnb %>% 
+  mutate(inzip28801 = case_when( 
+    zipcode == 28801 ~ "yes",
+    zipcode == 28704 ~ "no",
+    zipcode == 28715 ~ "no",
+    zipcode == 28732 ~ "no", 
+    zipcode == 28748 ~ "no",
+    zipcode == 28787 ~ "no",
+    zipcode == 28803 ~ "no",
+    zipcode == 28804 ~ "no",
+    zipcode == 28805 ~ "no",
+    zipcode == 28806 ~ "no",
+    zipcode == 28815 ~ "no",
+    zipcode == 29710 ~ "no")
+    )
+
+#Make zipcode indicator for 28804
+airbnb <- airbnb %>% 
+  mutate(inzip28804 = case_when( 
+    zipcode == 28801 ~ "no",
+    zipcode == 28704 ~ "no",
+    zipcode == 28715 ~ "no",
+    zipcode == 28732 ~ "no", 
+    zipcode == 28748 ~ "no",
+    zipcode == 28787 ~ "no",
+    zipcode == 28803 ~ "no",
+    zipcode == 28804 ~ "yes",
+    zipcode == 28805 ~ "no",
+    zipcode == 28806 ~ "no",
+    zipcode == 28815 ~ "no",
+    zipcode == 29710 ~ "no")
+    )
+
+#Make zipcode indicator for 28804
+glimpse(airbnb)
+airbnb$inzip28801 <- as.factor(airbnb$inzip28801)
+airbnb$inzip28804 <- as.factor(airbnb$inzip28804)
+
+#Reference Levels
+airbnb$inzip28801 <- relevel(airbnb$inzip28801, ref="no")
+airbnb$inzip28804<- relevel(airbnb$inzip28804, ref="no")
+```
+
+Finally, we decided to omit any remaining incomplete cases we had left. At this point in our data preparation process, we only had 35 out of our original 1935 observations that were incomplete cases. After looking at the data, we concluded that any NAs we still had left were the result of random errors in the data collection process. We were comfortable in omitting these few observations for the sake of our model.
+
+```{r omit-na}
+#Omit all observations with NAs 
+airbnb <- airbnb[complete.cases(airbnb),]
+```
+
+Finally, after building a model and checking the assumptions, we saw that the plot of our residuals vs. the predicted values had a strange shape. After consulting with Dr. Tackett, we thought that the best move would be to log transform our response variable, price, and use that in our final model.  
+
+```{r, transform - logprice}
+#Log transform price
+airbnb <- airbnb %>% mutate(logprice = log(price))
+```
+
+# == Saving Data == 
+
+To prevent cluttering our analysis .Rmd file, we decided to save our edited data set and use that moving forward. That way, we can knit our document much faster and don't have to worry about damaging our data set.
+
+```{r write-csv}
+#Write CSV in R 
+write_csv(airbnb, "finalairbnb.csv")
+```
