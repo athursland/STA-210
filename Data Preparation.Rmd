@@ -7,7 +7,7 @@ output: pdf_document
 
 # == Setup ==
 
-```{r setup, warning=FALSE, echo=FALSE, message=FALSE}
+```{r setup, warning=FALSE, message=FALSE}
 #Setup
 library("dplyr")
 library("ggplot2")
