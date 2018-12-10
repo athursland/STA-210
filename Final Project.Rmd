@@ -30,6 +30,7 @@ glimpse(airbnb)
 ```
 
 # Separate training and testing
+
 ```{r separate}
 #80% of the sample size
 smp_size <- floor(0.80 * nrow(airbnb))
@@ -46,7 +47,7 @@ test.airbnb <- airbnb[-train_ind, ]
 
 *Question of interest:* How can we produce a model that accurately predicts the listed nightly price for an Airbnb in Asheville, NC?
 
-  The data set we are using is a .csv file of every AirBnB listing in the city of Asheville, North Carolina as of October 17, 2018 . Each observation is an individual listing. We sourced this data from Inside AirBnB, a website that regularly scrapes data from AirBnB’s listings and provides them as public data sets separated by city.
+  The data set we are using is a .csv file of every AirBnB listing in the city of Asheville, North Carolina as of October 17, 2018. Each observation is an individual listing. We sourced this data from Inside AirBnB, a website that regularly scrapes data from AirBnB’s listings and provides them as public data sets separated by city.
 
   The original data set was very large (96 columns and 1,936 observations), so we reduced it for simplicity’s sake. We chose 26 columns that could potentially be of interest for a regression analysis, and we created one more column called has_reviews, which is an indicator variable. We noticed that some columns, like cleaning_fee and security_deposit, had a lot of NAs, so instead of omitting all of these observations we mutated NAs from these columns to be 0s. We were left with 24 incomplete cases, likely the result of web scraping errors, and so we chose to omit them. Our final number of columns was 27 and our final number of rows was 1,900. 
 
@@ -207,4 +208,9 @@ mse.test  <- sum((test.resid2)^2)/(nrow(test.airbnb)-2)
 
 print(mse.train)
 print(mse.test)
+```
+
+```{r select}
+sample <- sample_n(test.airbnb, 2)
+sample
 ```
