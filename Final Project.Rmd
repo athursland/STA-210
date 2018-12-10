@@ -156,10 +156,10 @@ interactions.model <- lm(logprice ~ cleaning_fee * bathrooms + cleaning_fee * ac
 + cancellation_policy, data=train.airbnb)
 
 #anova test
-kable(anova(full.model, interactions.model)) # there is a significant interaction term
+#kable(anova(full.model, interactions.model)) # there is a significant interaction term
 ```
 
-```{r backwards-interactions, warning=FALSE}
+```{r stepwise-interactions, warning=FALSE}
 stepwise.interactions.model <- ols_step_both_aic(interactions.model, details=FALSE)
 ```
 
@@ -188,7 +188,7 @@ kable(table2)
 
 # Prediction 
 
-```{r predict-testing, warning=FALSE}
+#```{r predict-testing, warning=FALSE}
 #Predict on the testing set using our final model
 test.airbnb <- test.airbnb %>% mutate(predict = predict.lm(stepwise.interactions.model, test.airbnb))
 
@@ -214,3 +214,21 @@ print(mse.test)
 sample <- sample_n(test.airbnb, 2)
 sample
 ```
+
+## Example Prediction
+```{r, observation 43}
+x0 = data.frame(host_is_superhost= "t", room_type = "Entire home/apt", accommodates = 5, logprice = log(95), cleaning_fee = 75, minimum_nights = 1, availability_30 = 4, number_of_reviews = 95, log.reviews_per_month = log(1.42), cancellation_policy = "moderate")
+
+
+#random variables
+x1 = data.frame(host_is_superhost= "t", room_type = "Entire home/apt", accommodates = 4, cleaning_fee = 10, minimum_nights = 1, availability_30 = 15, number_of_reviews = 100, log.reviews_per_month = log(1.5), cancellation_policy = "strict_14_with_grace_period")
+
+predict.lm(stepwise.interactions.model,x0,interval="prediction")
+
+exp(5.140246)
+exp(4.353211)
+exp(5.92728)
+
+```
+
+
