@@ -42,10 +42,9 @@ train.airbnb <- airbnb[train_ind, ]
 test.airbnb <- airbnb[-train_ind, ]
 ```
 
-
 # Description of data
 
-Question of interest: How can we produce a model that accurately predicts the listed nightly price for an Airbnb in Asheville, NC?
+*Question of interest:* How can we produce a model that accurately predicts the listed nightly price for an Airbnb in Asheville, NC?
 
   The data set we are using is a .csv file of every AirBnB listing in the city of Asheville, North Carolina as of October 17, 2018 . Each observation is an individual listing. We sourced this data from Inside AirBnB, a website that regularly scrapes data from AirBnB’s listings and provides them as public data sets separated by city.
 
@@ -88,6 +87,7 @@ Airbnb, inc. is a privately held global company headquartered in San Francisco t
   We were interested in this data because it’s something that so many people, especially our peers here at Duke, would find relevant. There are over 4 million AirBnB listings worldwide and 150 million global users. Both Mary Helen and I have stayed in an AirBnB in the last month. With the option to rent entire homes, AirBnBs offer more luxury, space and solitude than other lodging options. Hosts set prices for listings at their own discretion, and so there isn’t any specific algorithm or model by which it’s calculated. By using this data to create a model that can accurately predict prices for listings, we might be able to help people figure out what the typical price range is for the type of listing they want – and therefore, whether or not a specific listing is a good deal. Specifically, we’ll be looking at AirBnB listings in the Asheville Metro Area, North Carolina. Asheville is a popular weekend getaway in North Carolina. Given its relative proximity to Duke, many students visit at least once during their time here – often staying in AirBnBs when they do. This makes our data more relevant to our peers, and also helps us by narrowing down the total number of observations into a size that’s more manageable.
 
 # Exploratory Data Analysis
+
 ```{r pairs-plots with log transformations}
 #Pairs plots for all of the explanatory variables
 pairs(logprice ~ cancellation_policy + host_is_superhost + host_listings_count, data=train.airbnb)
@@ -100,7 +100,6 @@ pairs(logprice ~ log(review_scores_cleanliness +1) + review_scores_checkin + rev
 pairs(logprice ~ log(review_scores_location +1) + review_scores_value + log(reviews_per_month +1), data = train.airbnb)
 pairs(logprice ~ inzip28801 + inzip28804, data = train.airbnb)
 ```
-
 
 ```{r price-boxplot, warning=FALSE}
 #Distribution of nightly price
@@ -130,56 +129,6 @@ ggplot(train.airbnb, aes(x=bed_type, y=logprice)) + geom_boxplot()
 # Model building
 
 *NOTE* -> we are omitting host_response_rate from our model because we were having trouble converting the variable to a numeric without losing a lot of the information. Will address before final due date. 
-
-```{r first-model, message=FALSE}
-full.model <- lm(logprice ~ host_is_superhost
-+ host_listings_count
-+ room_type
-+ accommodates
-+ bathrooms
-+ beds
-+ bed_type
-+ cleaning_fee
-+ extra_people
-+ minimum_nights
-+ availability_30
-+ log.number_of_reviews
-+ log.review_scores_rating
-+ log.review_scores_accuracy
-+ log.review_scores_cleanliness
-+ log.review_scores_checkin
-+ log.review_scores_communication
-+ log.review_scores_location
-+ log.review_scores_value
-+ log.reviews_per_month
-+ cancellation_policy, data=train.airbnb)
-
-kable(tidy(full.model), format="markdown", digits = 4)
-kable(glance(full.model))
-```
-
-```{r backwards-selection, full log model}
-backward.log.model <- ols_step_backward_aic(full.model)
-```
-
-```{r final-backwards main-model}
-backwards.full.model <- lm(logprice ~ host_is_superhost
-+ zipcode
-+ room_type
-+ accommodates
-+ bathrooms
-+ cleaning_fee
-+ extra_people
-+ minimum_nights
-+ availability_30
-+ log.review_scores_cleanliness
-+ log.review_scores_checkin
-+ log.reviews_per_month
-+ cancellation_policy, data=train.airbnb)
-
-kable(tidy(backwards.full.model), format="markdown", digits = 4)
-kable(glance(backwards.full.model))
-```
 
 ```{r interactions}
 #model with interaction effects
@@ -236,141 +185,9 @@ kable(table2)
 # also: extra people is high so I vote we self select it out
 ```
 
-#Self Model
-```{r full model no zip}
-full.model <- lm(logprice ~ host_is_superhost
-+ host_listings_count
-+ room_type
-+ accommodates
-+ bathrooms
-+ beds
-+ bed_type
-+ cleaning_fee
-+ extra_people
-+ minimum_nights
-+ availability_30
-+ log.number_of_reviews
-+ log.review_scores_rating
-+ log.review_scores_accuracy
-+ log.review_scores_cleanliness
-+ log.review_scores_checkin
-+ log.review_scores_communication
-+ log.review_scores_location
-+ log.review_scores_value
-+ log.reviews_per_month
-+ cancellation_policy, data=train.airbnb)
-
-kable(tidy(full.model), format="markdown", digits = 4)
-kable(glance(full.model))
-```
-
-```{r, backwards with zip changes}
-#ncol(train.airbnb$zip28801)
-#ncol(train.airbnb$zipcode)
-backwards.log.model <- ols_step_backward_aic(full.model)
-
-step.log.model <- ols_step_both_aic(full.model)
-```
-
-# Assumptions
-#exploratory
-```{r}
-pairs(logprice ~ accommodates + bathrooms, data = train.airbnb)
-```
-
-
-
-
-```{r resids 2}
-train.airbnb <- train.airbnb %>% mutate(stand.resid = rstandard(stepwise.interactions.model),
-                                        pred = predict(stepwise.interactions.model))
-
-```
-
-```{r standard residual-plots/qq}
-ggplot(data = train.airbnb, aes(x=stand.resid)) + geom_histogram()
-qqnorm(train.airbnb$stand.resid)
-```
-
-```{r - residuals plot against explanatory}
-p1 <- ggplot(data = train.airbnb, aes(x=pred, y=stand.resid)) + geom_point() + 
-  labs(x="Predicted", y="Residual", title="Residuals vs Predicted",
-subtitle=("backwards.interactions.model"))+
-theme(plot.title = element_text(hjust = 0.5,size=14),
-plot.subtitle=element_text(hjust=0.5,size=10))
-
-
-p2 <- ggplot(data = train.airbnb, aes(x=accommodates, y=stand.resid)) + geom_point() + 
-  labs(x="Number of Guests", y="Residual", title="Residuals vs Accommodates",
-subtitle=("backwards.interactions.model"))+
-theme(plot.title = element_text(hjust = 0.5,size=14),
-plot.subtitle=element_text(hjust=0.5,size=10))
-
-p3 <- ggplot(data = train.airbnb, aes(x= cleaning_fee, y=stand.resid)) + geom_point() + 
-  labs(x="Fee ($)", y="Residual", title="Residuals vs Cleaning Fee",
-subtitle=("Backwards.interactions.model"))+
-theme(plot.title = element_text(hjust = 0.5,size=14),
-plot.subtitle=element_text(hjust=0.5,size=10))
-
-p4 <-ggplot(data = train.airbnb, aes(x=minimum_nights, y=stand.resid)) + geom_point() + 
-  labs(x="Minimum Nights", y="Residual", title="Residuals vs Minimum_nights",
-subtitle=("Backwards.interactions.model"))+
-theme(plot.title = element_text(hjust = 0.5,size=14),
-plot.subtitle=element_text(hjust=0.5,size=10))
-
-p5 <- ggplot(data = train.airbnb, aes(x=availability_30, y=stand.resid)) + geom_point() + 
-  labs(x="Number of Available Nights in the next month", y="Residual", title="Residuals vs Availability",
-subtitle=("backwards.interactions.model"))+
-theme(plot.title = element_text(hjust = 0.5,size=14),
-plot.subtitle=element_text(hjust=0.5,size=10))
-
-p6 <- ggplot(data = train.airbnb, aes(x=log.reviews_per_month, y=stand.resid)) + geom_point() + 
-  labs(x="Reviews per month", y="Residual", title="Residuals vs Log Reviews per month",
-subtitle=("backwards.interactions.model"))+
-theme(plot.title = element_text(hjust = 0.5,size=14),
-plot.subtitle=element_text(hjust=0.5,size=10))
-```
-
-
-```{r}
-plot_grid(p1,p2,p3,p4)
-plot_grid(p5,p6)
-```
-
-
-plots - log cleaning fee
-
-2. Constant variance 
-
-3. Normality
-
-4. Independence 
-
-
-5. Leverage Points/ outliers
-
-```{r outliers}
-train.airbnb <- train.airbnb %>%
-  mutate(leverage = hatvalues(stepwise.interactions.model), 
-         cooks = cooks.distance(stepwise.interactions.model),
-         obs.num = row_number())
-
-ggplot(data=train.airbnb, aes(x=obs.num,y=leverage)) + 
-  geom_point(alpha=0.5) + 
-  geom_hline(yintercept=36/1520,color="red")+
-  labs(x="Observation Number",y="Leverage",title="Leverage")
-
-ggplot(data=train.airbnb, aes(x=obs.num,y=cooks)) + 
-  geom_point() + 
-  geom_hline(yintercept=1,color="red")+
-  labs(x="Observation Number",y="Cook's Distance",title="Cook's Distance")
-
-tidy(vif(stepwise.interactions.model))
-```
-
 # Prediction 
 
-#```{r predict-testing, warning=FALSE}
+```{r predict-testing, warning=FALSE}
 #Predict on the testing set using our final model
 test.airbnb <- test.airbnb %>% mutate(predict = predict.lm(stepwise.interactions.model, test.airbnb))
 
@@ -382,7 +199,7 @@ ggplot(test.airbnb, aes(x=predict, y=test.resid2)) + geom_point() +
   theme(plot.subtitle = element_text(hjust=0.5))
 
 
-# residuals
+#Residuals
 ggplot(test.airbnb, aes(x=predict, y=logprice)) + geom_point() +labs(title = "Logprice vs Predicted")
 
 mse.train <- summary(stepwise.interactions.model)$sigma^2
@@ -391,5 +208,3 @@ mse.test  <- sum((test.resid2)^2)/(nrow(test.airbnb)-2)
 print(mse.train)
 print(mse.test)
 ```
-
-# Alternative Models

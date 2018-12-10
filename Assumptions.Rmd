@@ -1,0 +1,147 @@
+---
+title: "Assumptions"
+author: "Ali Thursland and Mary Helen Wood"
+date: "12/10/2018"
+output: pdf_document
+---
+
+# == Setup ==
+
+```{r setup, warning=FALSE, echo=FALSE, message=FALSE}
+#Setup
+library("dplyr")
+library("ggplot2")
+library("broom")
+library("knitr")
+library("cowplot")
+library("readr")
+library("dslabs")
+library("varhandle")
+library("olsrr")
+library("car")
+```
+
+# == Read in Data == 
+
+```{r data, warning=FALSE, message=FALSE, echo=FALSE}
+airbnb <- read_csv("https://raw.githubusercontent.com/athursland/STA-210/master/finalairbnb.csv")
+```
+
+## Separate training and testing
+```{r separate}
+#80% of the sample size
+smp_size <- floor(0.80 * nrow(airbnb))
+
+#set the seed to make your partition reproducible
+set.seed(123456)
+train_ind <- sample(seq_len(nrow(airbnb)), size = smp_size)
+
+train.airbnb <- airbnb[train_ind, ]
+test.airbnb <- airbnb[-train_ind, ]
+```
+
+# == Final Model == 
+
+```{r final-model}
+stepwise.interactions.model <- lm(logprice ~ cleaning_fee * accommodates + availability_30 * minimum_nights
++ host_is_superhost
++ room_type
++ accommodates
++ cleaning_fee
++ minimum_nights
++ availability_30
++ log.reviews_per_month
++ cancellation_policy, data=train.airbnb)
+
+kable(tidy(stepwise.interactions.model), format="markdown", digits = 4)
+kable(glance(stepwise.interactions.model))
+```
+```
+
+# == Assumptions == 
+
+There are 5 assumptions for multiple linear regression:
+1. Linearity
+2. Constant variance 
+3. Normality
+4. Independence 
+
+Additionally, we must avoid outliers/multicollinearity in our final model. 
+
+```{r pairs-plots}
+pairs(logprice ~ accommodates + bathrooms, data = train.airbnb)
+```
+
+```{r resids 2}
+train.airbnb <- train.airbnb %>% mutate(stand.resid = rstandard(stepwise.interactions.model),
+                                        pred = predict(stepwise.interactions.model))
+
+```
+
+```{r stand-resids-qq}
+ggplot(data = train.airbnb, aes(x=stand.resid)) + geom_histogram()
+qqnorm(train.airbnb$stand.resid)
+```
+
+```{r resids-explanatory}
+p1 <- ggplot(data = train.airbnb, aes(x=pred, y=stand.resid)) + geom_point() + 
+  labs(x="Predicted", y="Residual", title="Residuals vs Predicted",
+subtitle=("backwards.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+
+p2 <- ggplot(data = train.airbnb, aes(x=accommodates, y=stand.resid)) + geom_point() + 
+  labs(x="Number of Guests", y="Residual", title="Residuals vs Accommodates",
+subtitle=("backwards.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p3 <- ggplot(data = train.airbnb, aes(x= cleaning_fee, y=stand.resid)) + geom_point() + 
+  labs(x="Fee ($)", y="Residual", title="Residuals vs Cleaning Fee",
+subtitle=("Backwards.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p4 <-ggplot(data = train.airbnb, aes(x=minimum_nights, y=stand.resid)) + geom_point() + 
+  labs(x="Minimum Nights", y="Residual", title="Residuals vs Minimum_nights",
+subtitle=("Backwards.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p5 <- ggplot(data = train.airbnb, aes(x=availability_30, y=stand.resid)) + geom_point() + 
+  labs(x="Number of Available Nights in the next month", y="Residual", title="Residuals vs Availability",
+subtitle=("backwards.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+
+p6 <- ggplot(data = train.airbnb, aes(x=log.reviews_per_month, y=stand.resid)) + geom_point() + 
+  labs(x="Reviews per month", y="Residual", title="Residuals vs Log Reviews per month",
+subtitle=("backwards.interactions.model"))+
+theme(plot.title = element_text(hjust = 0.5,size=14),
+plot.subtitle=element_text(hjust=0.5,size=10))
+```
+
+```{r plot-residuals}
+plot_grid(p1,p2,p3,p4)
+plot_grid(p5,p6)
+```
+
+```{r outliers}
+train.airbnb <- train.airbnb %>%
+  mutate(leverage = hatvalues(stepwise.interactions.model), 
+         cooks = cooks.distance(stepwise.interactions.model),
+         obs.num = row_number())
+
+ggplot(data=train.airbnb, aes(x=obs.num,y=leverage)) + 
+  geom_point(alpha=0.5) + 
+  geom_hline(yintercept=36/1520,color="red")+
+  labs(x="Observation Number",y="Leverage",title="Leverage")
+
+ggplot(data=train.airbnb, aes(x=obs.num,y=cooks)) + 
+  geom_point() + 
+  geom_hline(yintercept=1,color="red")+
+  labs(x="Observation Number",y="Cook's Distance",title="Cook's Distance")
+
+tidy(vif(stepwise.interactions.model))
+```
