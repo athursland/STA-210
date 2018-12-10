@@ -158,6 +158,7 @@ airbnb <- airbnb %>%
 #Make price as numeric
 airbnb$price <- as.numeric(as.character(airbnb$price))
 glimpse(airbnb$price)
+airbnb
 ```
 
 
@@ -172,7 +173,8 @@ glimpse(airbnb$price)
 airbnb$zipcode <- as.factor(airbnb$zipcode)
 
 # Make zipcode indicator for 28801
-airbnb <- airbnb %>% mutate(inzip28801 = ifelse(zipcode == 28801, "yes", "no"))
+airbnb <- airbnb %>% mutate(inzip28801 = 
+                              ifelse(zipcode == 28801, "yes", "no"))
 
 # Make zipcode indicator for 28804
 airbnb <- airbnb %>% mutate(inzip28804 = ifelse(zipcode == 28804, "yes","no"))
@@ -271,7 +273,6 @@ pairs(logprice ~ inzip28801 + inzip28804, data = train.airbnb)
 
 ```{r price-boxplot, warning=FALSE}
 #Distribution of nightly price
-<<<<<<< HEAD
 ggplot(train.airbnb, aes(x=price)) + geom_histogram(stat="count") + labs(title="Distribution of nightly prices")
 
 #Boxplot of price by bed type
@@ -282,12 +283,10 @@ ggplot(train.airbnb, aes(x=room_type, y=price)) + geom_boxplot() + labs(title="D
 
 ggplot(train.airbnb, aes(x=cleaning_fee)) + geom_histogram(stat="count") + labs(title="Distribution of cleaning fees")
 
-=======
 ggplot(train.airbnb, aes(x=logprice)) + geom_histogram()
 
 #Boxplot of price by bed type
 ggplot(train.airbnb, aes(x=bed_type, y=logprice)) + geom_boxplot()
->>>>>>> d09f48e490f8137378aeefee7fc2d832308fba8b
 ```
 
 # Model building
@@ -750,9 +749,7 @@ kable(table)
 ```
 
 
-
-
-=======
+```{r}
 test.airbnb<- test.airbnb[, !duplicated(colnames(test.airbnb))]
 ```
 
@@ -763,4 +760,3 @@ ggplot(test.airbnb, aes(x=predict, y=test.resid2)) + geom_point() +
   theme(plot.subtitle=element_text(hjust=0.5))
 ggplot(test.airbnb, aes(x=predict, y=logprice)) + geom_point()
 ```
->>>>>>> d09f48e490f8137378aeefee7fc2d832308fba8b
