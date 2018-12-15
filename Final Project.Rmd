@@ -103,9 +103,18 @@ pairs(logprice ~ inzip28801 + inzip28804, data = train.airbnb)
 ```
 
 ```{r price-boxplot, warning=FALSE}
-#Distribution of nightly price
-ggplot(train.airbnb, aes(x=logprice)) + geom_histogram() + labs(title="Distribution of Log nightly prices")
-ggplot(train.airbnb, aes(x=price)) + geom_histogram(stat="count") + labs(title="Distribution of nightly prices")
+#Distribution of price
+ggplot(train.airbnb, aes(x=price)) + geom_histogram(fill="#FF5A5F") + geom_vline(aes(xintercept=mean(price)),
+            color="#006cb7", linetype="dashed", size=1) +
+  labs(title="Distribution of price") + 
+  theme(plot.title=element_text(colour="#006cb7", family="Helvetica", face="bold", size=20),
+        axis.title=element_text(colour="#006cb7", family="Helvetica"))
+
+#Distribution of logprice
+ggplot(train.airbnb, aes(x=logprice)) + geom_histogram(fill="#FF5A5F") + geom_vline(aes(xintercept=mean(logprice)),
+            color="#006cb7", linetype="dashed", size=1) + labs(title="Distribution of logprice") +
+  theme(plot.title=element_text(colour="#006cb7", family="Helvetica", face="bold", size=20),
+        axis.title=element_text(colour="#006cb7", family="Helvetica"))
 
 #Boxplot of price by bed type
 ggplot(train.airbnb, aes(x=bed_type, y=logprice)) + geom_boxplot() + labs(title="Distribution of log nightly price by bed type")
@@ -116,20 +125,41 @@ ggplot(train.airbnb, aes(x=room_type, y=logprice)) + geom_boxplot() + labs(title
 #Distribution of Cleaning Fees
 ggplot(train.airbnb, aes(x=cleaning_fee)) + geom_histogram() + labs(title="Distribution of cleaning fees")
 
-
-#Boxplot of LogPrice by Zipcode
-ggplot(train.airbnb, aes(x=zipcode, y=logprice)) + geom_boxplot() + labs(title="Distribution of log nightly price by zipcode")
-
-ggplot(train.airbnb, aes(x=logprice)) + geom_histogram()
-
-
 #Boxplot of log price by bed type
 ggplot(train.airbnb, aes(x=bed_type, y=logprice)) + geom_boxplot()
 ```
 
 # Model building
 
-*NOTE* -> we are omitting host_response_rate from our model because we were having trouble converting the variable to a numeric without losing a lot of the information. Will address before final due date. 
+*NOTE* -> we are omitting host_response_rate from our model because we were having trouble converting the variable to a numeric without losing a lot of the information. Will address before final due date.
+
+```{r full-model}
+#full model
+full.model <- lm(logprice ~ host_is_superhost
++ host_listings_count
++ zipcode
++ room_type
++ accommodates
++ bathrooms
++ beds
++ bed_type
++ cleaning_fee
++ extra_people
++ minimum_nights
++ availability_30
++ log.number_of_reviews
++ log.review_scores_rating
++ log.review_scores_accuracy
++ log.review_scores_cleanliness
++ log.review_scores_checkin
++ log.review_scores_communication
++ log.review_scores_location
++ log.review_scores_value
++ log.reviews_per_month
++ cancellation_policy, data=train.airbnb)
+
+tidy(full.model)
+```
 
 ```{r interactions}
 #model with interaction effects
@@ -163,8 +193,9 @@ kable(anova(full.model, interactions.model)) # there is a significant interactio
 stepwise.interactions.model <- ols_step_both_aic(interactions.model, details=FALSE)
 ```
 
-```{r final-interactions-model}
-stepwise.interactions.model <- lm(logprice ~ cleaning_fee * accommodates + availability_30 * minimum_nights
+```{r final-model}
+#final model after self selection
+final.model <- lm(logprice ~ cleaning_fee * accommodates + availability_30 * minimum_nights
 + host_is_superhost
 + room_type
 + accommodates
@@ -174,8 +205,7 @@ stepwise.interactions.model <- lm(logprice ~ cleaning_fee * accommodates + avail
 + log.reviews_per_month
 + cancellation_policy, data=train.airbnb)
 
-kable(tidy(stepwise.interactions.model), format="markdown", digits = 4)
-kable(glance(stepwise.interactions.model))
+kable(tidy(final.model), format="markdown", digits = 4)
 ```
 
 ```{r, examine zip code, warning=FALSE}
@@ -186,31 +216,54 @@ kable(table2)
 # also: extra people is high so I vote we self select it out
 ```
 
-# Prediction 
+# Prediction
 
-```{r predict-testing, warning=FALSE}
-#Predict on the testing set using our final model
-test.airbnb <- test.airbnb %>% mutate(predict = predict.lm(stepwise.interactions.model, test.airbnb))
+```{r testing-model}
+#Applying our model to the testing set
+test.model <- lm(logprice ~ cleaning_fee * accommodates + availability_30 * minimum_nights
++ host_is_superhost
++ room_type
++ accommodates
++ cleaning_fee
++ minimum_nights
++ availability_30
++ log.reviews_per_month
++ cancellation_policy, data=test.airbnb)
 
-test.airbnb <- test.airbnb %>% mutate(test.resid2 = test.airbnb$logprice - test.airbnb$predict)
-
-ggplot(test.airbnb, aes(x=predict, y=test.resid2)) + geom_point() + 
-  labs(title = "Residuals vs Predicted", subtitle = "Test Data Set", x = "predicted", y = "residual") +
-  geom_hline(yintercept=0,color="red") + 
-  theme(plot.subtitle = element_text(hjust=0.5))
-
-
-#Residuals
-ggplot(test.airbnb, aes(x=predict, y=logprice)) + geom_point() +labs(title = "Logprice vs Predicted")
-
-mse.train <- summary(stepwise.interactions.model)$sigma^2
-mse.test  <- sum((test.resid2)^2)/(nrow(test.airbnb)-2)
-
-print(mse.train)
-print(mse.test)
+tidy(test.model)
+tidy(final.model)
 ```
 
-```{r select}
-sample <- sample_n(test.airbnb, 2)
-sample
+```{r predict-training, warning=FALSE}
+#Predict on the training set using our final model
+train.airbnb <- train.airbnb %>% mutate(predict = predict.lm(final.model, train.airbnb))
+
+#Raw resids for training set
+train.airbnb <- train.airbnb %>% mutate(raw.resid = logprice - predict)
+```
+
+```{r predict-testing}
+#Predict on the testing set using our final model
+test.airbnb <- test.airbnb %>% mutate(predict = predict.lm(final.model, test.airbnb))
+
+#Raw resids for testing set
+test.airbnb <- test.airbnb %>% mutate(raw.resid = logprice - predict)
+
+#Residuals vs. Predicted
+ggplot(test.airbnb, aes(x=predict, y=raw.resid)) + geom_point(colour="#006cb7") + 
+  labs(title = "Residuals vs Predicted", subtitle = "Test Data Set", x = "predicted", y = "residual") +
+  geom_hline(yintercept=0,color="#FF5A5F") + 
+  theme(plot.title=element_text(colour="#FF5A5F", family="Helvetica", face="bold", size=20),
+        axis.title=element_text(colour="#FF5A5F", family="Helvetica"),
+        plot.subtitle=element_text(hjust=0.5, colour="#FF5A5F", family="Helvetica"))
+
+#Calculate MSE
+mse.train <- mean(train.airbnb$raw.resid^2)
+mse.test  <- mean(test.airbnb$raw.resid^2)
+mse.diff <- mse.test - mse.train
+
+#Print MSE + difference
+print(mse.train)
+print(mse.test)
+print(mse.diff)
 ```
